@@ -1,0 +1,15 @@
+- name: remove the software
+  hosts: all
+  become: yes
+  tasks:
+    - name: remove
+      yum:
+        name: httpd
+        state: present
+      register: vishal
+
+    - name: print the register variable
+      debug:
+        var: vishal.rc
+
+

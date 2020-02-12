@@ -1,0 +1,76 @@
+---
+- name: "Modify the attached silent installer template and Copy prepared SilentInput.properties files to {{ informatica_directory }}"
+  template:
+    src: "{{ informatica.silentinput_properties_file }}"
+    dest: "{{ informatica_directory }}/SilentInput.properties"
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+    mode: 0644
+    remote_src: yes
+  become: yes
+
+- name: "Copy service sysvinit unit file"
+  template:
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+    src: informatica.service.j2
+    dest: "/etc/init.d/informatica_{{ environment_name }}"
+    mode: "0744"
+  become: yes
+
+- name: "Update permissions"
+  file:
+    path: "{{ item.path }}"
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+    state: directory
+    recurse: yes
+    mode: "{{ item.mode }}"
+  with_items:
+  - path: "{{ informatica_directory }}"
+    mode: "0700"
+  - path: "{{ informatica_install_directory }}"
+    mode: "0775"
+
+- name: "Run  silentinstall.sh from {{ informatica_directory }}"
+  shell:  "(yes | ./silentinstall.sh | true) || service informatica_{{ environment_name }} stop"
+  args:
+    chdir: "{{ informatica_directory }}"
+    executable: /bin/bash
+  environment:
+  - LC_CTYPE: "en_US.UTF-8"
+  - LC_ALL: "en_US.UTF-8"
+  - LANG: "en_US.UTF-8"
+  - IATEMPDIR: "{{ informatica_temp_directory }}"
+  - INFA_CODEPAGENAME: "UTF-8"
+  - LD_LIBRARY_PATH: "LD_LIBRARY_PATH==/usr/lib64:/usr/lib:/lib64:/lib:{{ informatica_install_directory }}/server/bin:{{ informatica_install_directory }}:{{ ansible_env.LD_LIBRARY_PATH | default('') }}:."
+  become_user: "{{ informatica.owner }}"
+  become: yes
+
+# At this point, it is expected for the Application launched by the shell block above to be killed due ot ansible exiting the session
+# Ensure it is stopped
+# This is not working correctly, but this seems to work:
+#ansible -m service 'rh68[0]' -a 'name=informatica_Dev2 state=started'
+#rh68test1.techlab.com | SUCCESS => {
+#    "changed": true,
+#    "name": "informatica_Dev2",
+#    "state": "started"
+#}
+#- name: "Stop"
+#  service:
+#    name: "informatica_{{ environment_name }}"
+#    state: stopped
+#  become: yes
+#  tags:
+#  - shutdown
+#
+## Start 'er up
+#- name: "Startup"
+#  service:
+#    name: "informatica_{{ environment_name }}"
+#    state: started
+#  become: yes
+#  tags:
+#  - start
+#  - startup
+

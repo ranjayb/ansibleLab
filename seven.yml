@@ -1,0 +1,10 @@
+- name: variables from file
+  hosts: all
+  vars: 
+    favcolor: blue
+  vars_files:
+    - /vars/external_vars.yml
+
+  tasks:
+  - name: placeholder
+    command: /bin/echo foo

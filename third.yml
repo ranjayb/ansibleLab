@@ -1,0 +1,8 @@
+- name: my third file
+  hosts: all
+  tasks:
+    - name: tasks1
+      copy: 
+       content: "donot replace if not exists"
+       dest: /tmp/ranjay
+       follow: yes

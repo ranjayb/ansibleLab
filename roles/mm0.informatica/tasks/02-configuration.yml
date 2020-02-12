@@ -1,0 +1,50 @@
+---
+- name: Prepare Bash profile
+  template:
+    dest: "/home/{{ item.user }}/.bash_profile"
+    src: ".bash_profile.j2"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  with_items: "{{ informatica.users }}"
+  become: yes
+
+- name: Create directories
+  file:
+    state: directory
+    dest:  "{{ item.path }}"
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+    mode: "{{ item.mode }}"
+  become: yes
+  with_items:
+  - path: "{{ informatica_root_directory }}"
+    mode: "0700"
+  - path: "{{ informatica.base_directory }}"
+    mode: "0700"
+  - path: "{{ informatica_directory }}"
+    mode: "0700"
+  - path: "{{ informatica_install_directory }}"
+    mode: "0755"
+  - path: "{{ informatica.oracle_client.destination }}"
+    mode: "0755"
+  - path: "/data/infadm"
+    mode: "0700"
+
+- name: Copy license key to "{{ informatica_directory }}"
+  copy:
+    src: "{{ informatica.key_file }}"
+    dest: "{{ informatica_directory }}"
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+    mode: 0644
+    remote_src: yes
+  become: yes
+
+- name: Extract the installer placed in "{{ informatica_directory }}"
+  unarchive:
+    src: "{{ informatica.archive }}"
+    dest: "{{ informatica_directory }}"
+    copy: no
+    owner: "{{ informatica.owner }}"
+    group: "{{ informatica.group }}"
+  become: yes

@@ -1,0 +1,15 @@
+- name: my fifth file
+  hosts: all
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  connection: ssh
+  tasks:
+    - group:
+       name: sanofi
+       state: present
+
+    - user:
+        name: user1
+        group: sanofi
+

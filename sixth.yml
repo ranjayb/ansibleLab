@@ -1,0 +1,9 @@
+- name: Usage of variables
+  hosts: all
+  vars_prompt:
+    - name: "test"
+      prompt: "My name is "
+      private: no
+  tasks:
+   - debug:
+      msg: My Name is {{test}}

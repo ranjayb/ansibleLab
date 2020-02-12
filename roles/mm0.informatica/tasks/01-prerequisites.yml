@@ -1,0 +1,111 @@
+---
+- name: "Check required directories and files exist"
+  stat: path="{{ item }}" get_md5=false get_checksum=false
+  register: initial_file_check
+  with_items:
+  - "{{ informatica_root_directory }}"
+  - "{{ informatica.archive }}"
+  - "{{ informatica.oracle_client.archive }}"
+  - "{{ informatica.key_file}}"
+
+  become: yes
+
+- name: "Fail when required directories do not exist"
+  fail:
+    msg: "Required Installation File or Directory is missing: {{ item.item }}"
+  when: "{{ item.stat.exists | bool}} == false"
+  with_items: "{{ initial_file_check.results }}"
+
+- name: Enable yum repo for installation of optional (required) packages
+  yum:
+    enablerepo: "{{ item.repo }}"
+    name: "{{ item.package }}"
+  become: yes
+  with_items:
+  - repo: rhel-6-server-optional-rpms
+    package: sharutils # used to uuencode
+
+- name: Install required packages for Informatica
+  package:
+    name: "{{ item }}"
+    state: present
+  become: yes
+  with_items:
+  - e2fsprogs-libs
+  - keyutils-libs
+  - libselinux
+  - libsepol
+  - tree
+  - ksh
+  - dos2unix
+  - curl
+  - libselinux-python
+
+- name: Ensure ports aren't currently being used
+  wait_for:
+    port: "{{ item }}"
+    state: stopped
+  when: not skip_port_check
+  with_items:
+  - 6005
+  - 6006
+  - 6007
+  - 6008
+  - 6009
+  - 8085
+  - 8105
+  - 8095
+  - 10250
+  - 10370
+  - 16080
+  - 8084
+  - 7333
+
+- name: Ensure ports aren't currently being used cnt'd
+  wait_for:
+    port: "{{ item }}"
+    state: stopped
+  when: not skip_port_check
+  with_sequence: start=6013 end=6113 stride=1
+
+- name: Create required groups
+  group:
+    name: "{{ item.group}}"
+  with_items: "{{ informatica.users }}"
+  become: yes
+
+- name: Create required users
+  user:
+    name: "{{ item.user }}"
+    group: "{{ item.group }}"
+  with_items: "{{ informatica.users }}"
+  become: yes
+
+- name: Grant crontab privilege to ifadmin
+  lineinfile:
+    line: "{{ informatica.owner }}"
+    state: present
+    create: yes
+    dest: /etc/cron.allow
+  become: yes
+
+- name: Set server timezone
+  become: true
+  file:
+    dest: /etc/localtime
+    state: link
+    src: "/usr/share/zoneinfo/{{ informatica.timezone }}"
+    owner: root
+    group: root
+    mode: 644
+    force: true
+
+- name: Set user limits
+  pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.type }}"
+    limit_item: "{{ item.item }}"
+    value: "{{ item.value }}"
+    use_max: yes
+  with_items: "{{ informatica_user_limits }}"
+  become: yes

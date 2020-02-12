@@ -1,0 +1,13 @@
+---
+# tasks file for informatica
+- name: Prerequisites
+  include: 01-prerequisites.yml
+
+- name: Configuration
+  include: 02-configuration.yml
+
+- name: Oracle CLient
+  include: 03-oracleclient.yml
+
+- name: Informatica Installation
+  include: 04-installation.yml

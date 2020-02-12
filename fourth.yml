@@ -1,0 +1,26 @@
+- name: my fourth file
+  hosts: all
+  become: yes
+  tasks: 
+    - name: install httpd
+      yum: 
+        name: httpd
+        state: present
+   
+    - name: copy index file
+      copy:
+        content: "Hi Sanofi"
+        dest: /var/www/html/index.html
+
+    - name : service started  
+      service:  
+       name: httpd
+       state: started
+       enabled: yes
+      
+    - name: enabled firewall
+      firewalld: 
+       service: http
+       state: enabled
+       permanent: yes
+       immediate: yes
